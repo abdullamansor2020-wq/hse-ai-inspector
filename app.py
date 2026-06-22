@@ -71,17 +71,75 @@ with col2:
             
             with st.spinner("جاري تحليل الصور وتطبيق توجيهاتك الهندسية عبر الموديل المستقر..."):
                 
-                # صياغة التوجيه الهندسي المحكم
-                prompt = f"""
-                You are a senior professional HSE Auditor and Safety Inspector. Analyze the uploaded construction site image.
+                # صياغة التوجيه الهندسي المحكم مع تجنب تداخل النصوص وعلامات الاقتباس
+                base_prompt = (
+                    "You are a senior professional HSE Auditor and Safety Inspector. "
+                    "Analyze the uploaded construction site image.\n\n"
+                    "CRITICAL USER CONTEXT/COMMENTS TO INTEGRATE:\n"
+                    f"'{user_comments}'\n\n"
+                    "Provide a structured, professional inspection report IN ARABIC. For each hazard found, create a clear structure:\n"
+                    "1. مستوى الخطورة (عالي جداً، متوسط، منخفض)\n"
+                    "2. المخالفة/الخطر المرصود بدقة في الصورة\n"
+                    "3. الإجراء التصحيحي الفوري المطلوب (Corrective Action)\n"
+                    "4. المعيار الدولي المتوافق معه (مثل OSHA أو معايير السلامة الإنشائية العالمية)\n\n"
+                    "Ensure your analysis takes the user's comments into consideration. "
+                    "If the user provided a comment clearing a potential hazard, acknowledge it and adjust the risk rating accordingly."
+                )
                 
-                CRITICAL USER CONTEXT/COMMENTS TO INTEGRATE:
-                "{user_comments}"
+                for idx, file in enumerate(uploaded_files):
+                    img = Image.open(file)
+                    st.image(img, caption=f"صورة الموقع رقم {idx+1}: {file.name}", use_column_width=True)
+                    
+                    try:
+                        # تحويل الصورة وتجهيزها بصيغة Base64
+                        if img.mode in ("RGBA", "P"):
+                            img = img.convert("RGB")
+                        
+                        buffered = io.BytesIO()
+                        img.save(buffered, format="JPEG")
+                        base64_image = base64.b64encode(buffered.getvalue()).decode('utf-8')
+                        
+                        # استدعاء الموديل الرسمي والمستقر المعتمد حالياً للرؤية من Meta
+                        chat_completion = client.chat.completions.create(
+                            messages=[
+                                {
+                                    "role": "user",
+                                    "content": [
+                                        {"type": "text", "text": base_prompt},
+                                        {
+                                            "type": "image_url",
+                                            "image_url": {
+                                                "url": f"data:image/jpeg;base64,{base64_image}",
+                                            },
+                                        },
+                                    ],
+                                }
+                            ],
+                            model="llama-3.2-11b-vision-instruct",
+                        )
+                        
+                        analysis_result = chat_completion.choices[0].message.content
+                        
+                        st.markdown(f"#### 📝 نتيجة فحص الصورة {idx+1}:")
+                        st.markdown(f"<div class='report-box'>{analysis_result}</div>", unsafe_allow_html=True)
+                        
+                        final_report_text += f"--- تحليل الصورة رقم {idx+1} ({file.name}) ---\n{analysis_result}\n\n"
+                    except Exception as e:
+                        st.error(f"حدث خطأ أثناء فحص الصورة {idx+1}: {str(e)}")
                 
-                Provide a structured, professional inspection report IN ARABIC. For each hazard found, create a clear structure:
-                1. مستوى الخطورة (عالي جداً، متوسط، منخفض)
-                2. المخالفة/الخطر المرصود بدقة في الصورة
-                3. الإجراء التصحيحي الفوري المطلوب (Corrective Action)
-                4. المعيار الدولي المتوافق معه (مثل OSHA أو معايير السلامة الإنشائية العالمية)
-                
-                Ensure your analysis takes the user'
+                st.session_state['download_ready'] = final_report_text
+                st.success("✅ تم الفحص وإصدار التقارير بنجاح!")
+
+    elif not uploaded_files:
+        st.info("💡 النظام في انتظار رفع الصور وإضافة تعليقاتك لبدء الفحص.")
+
+# تصدير التقرير النهائي المجمع
+if 'download_ready' in st.session_state:
+    st.markdown("---")
+    st.subheader("💾 تصدير التقرير النهائي")
+    st.download_button(
+        label="📥 تحميل التقرير النهائي كملف نصي احترافي",
+        data=st.session_state['download_ready'].encode('utf-8-sig'),
+        file_name="HSE_Groq_Report.txt",
+        mime="text/plain"
+    )
