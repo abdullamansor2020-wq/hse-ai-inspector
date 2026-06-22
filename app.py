@@ -2,6 +2,7 @@ import streamlit as st
 from groq import Groq
 from PIL import Image
 import io
+import base64
 
 # إعدادات واجهة التطبيق
 st.set_page_config(
@@ -23,7 +24,7 @@ div.stButton > button:first-child {
 st.markdown(css_style, unsafe_allow_html=True)
 
 st.title("🦺 نظام فحص ومطابقة مخاطر السلامة (HSE) المجاني بالكامل")
-st.write("تم تحديث النظام ليعمل عبر محركات Groq فائقة السرعة لمنحك عدد محاولات ضخم ومجاني دون انقطاع.")
+st.write("تم تحديث النظام ليعمل عبر المحرك المستقر لـ Groq لضمان عدد محاولات ضخم ومجاني دون انقطاع.")
 
 # إدخال مفتاح الـ API الخاص بـ Groq في القائمة الجانبية
 st.sidebar.header("🔑 إعدادات منصة Groq")
@@ -31,10 +32,10 @@ groq_api_key = st.sidebar.text_input("أدخل مفتاح Groq API الخاص ب
 
 st.sidebar.markdown("""
 ---
-**💡 كيف تحصل على المفتاح مجاناً؟**
-1. افتح موقع: [console.groq.com](https://console.groq.com/)
-2. سجل بجوجل واضغط على **API Keys** ثم **Create API Key**.
-3. انسخ المفتاح وضعه هنا. يمنحك آلاف المحاولات المجانية يومياً!
+**💡 كيف يعمل النظام؟**
+1. ارفع صور الموقع.
+2. أضف أي ملاحظات سياقية (مثل: التركيز على الحفريات أو السقالات).
+3. اضغط تحليل، وسيقوم الموديل المستقر بقراءة الصورة وإخراج التقرير فوراً.
 """)
 
 # تقسيم واجهة المستخدم لرفع البيانات ومعاينتها
@@ -70,7 +71,7 @@ with col2:
             
             with st.spinner("جاري تحليل الصور وتطبيق توجيهاتك الهندسية الآن..."):
                 
-                # صياغة التوجيه الهندسي المحكم باللغة العربية والإنجليزية لضمان دقة التحليل
+                # صياغة التوجيه الهندسي المحكم
                 prompt = f"""
                 You are a senior professional HSE Auditor and Safety Inspector. Analyze the uploaded construction site image.
                 
@@ -90,32 +91,32 @@ with col2:
                     img = Image.open(file)
                     st.image(img, caption=f"صورة الموقع رقم {idx+1}: {file.name}", use_column_width=True)
                     
-                    # تحويل الصورة إلى بايتات متوافقة مع إرسال الـ API لـ Groq
-                    buffered = io.BytesIO()
-                    # تحويل صيغ الصور إلى JPEG لضمان التوافق التام
-                    if img.mode in ("RGBA", "P"):
-                        img = img.convert("RGB")
-                    img.save(buffered, format="JPEG")
-                    
-                    # قراءة محتوى الصورة لإرساله كمصدر سياقي مباشر
-                    # لتشغيل موديل الرؤية، سنستخدم طريقة الإرسال المناسبة لـ Groq دون تعقيد برمجى للمستخدم
-                    st.info(f"جاري معالجة الصورة رقم {idx+1}...")
-                    
                     try:
-                        # إرسال الطلب لموديل الرؤية الأحدث Llama 3.2 Vision
-                        # نستخدم واجهة النص المدعومة بالرؤية
-                        # ملاحظة: Groq تتوقع معالجة الصور عبر صيغ الـ base64 أو عبر الملفات المرفوعة، هنا نرسلها كطلب نصي مدعم
-                        # لتبسيط العملية وتفادي خطأ الامتدادات، سنرسل التحليل الفوري للموديل:
+                        # تحويل الصورة إلى JPEG وتشفيرها بصيغة Base64 لكي يستطيع الـ API قراءتها هندسياً بالكامل
+                        if img.mode in ("RGBA", "P"):
+                            img = img.convert("RGB")
                         
-                        # نرسل التوجيه للموديل، وبما أن الموديل يدعم الفهم الدلالي، سيعطيك أفضل قراءة فنية
+                        buffered = io.BytesIO()
+                        img.save(buffered, format="JPEG")
+                        base64_image = base64.b64encode(buffered.getvalue()).decode('utf-8')
+                        
+                        # استدعاء الموديل الرسمي والمستقر الجديد للرؤية من Meta عبر Groq
                         chat_completion = client.chat.completions.create(
                             messages=[
                                 {
                                     "role": "user",
-                                    "content": prompt,
+                                    "content": [
+                                        {"type": "text", "text": prompt},
+                                        {
+                                            "type": "image_url",
+                                            "image_url": {
+                                                "url": f"data:image/jpeg;base64,{base64_image}",
+                                            },
+                                        },
+                                    ],
                                 }
                             ],
-                            model="llama-3.2-11b-vision-preview",
+                            model="llama-3.2-11b-vision-instruct", # الموديل المستقر المعتمد حالياً
                         )
                         
                         analysis_result = chat_completion.choices[0].message.content
@@ -128,7 +129,7 @@ with col2:
                         st.error(f"حدث خطأ أثناء الاتصال بالخادم للصورة {idx+1}: {str(e)}")
                 
                 st.session_state['download_ready'] = final_report_text
-                st.success("✅ تم الفحص وإصدار التقارير بنجاح دون قيود في الحصة!")
+                st.success("✅ تم الفحص وإصدار التقارير بنجاح!")
 
     elif not uploaded_files:
         st.info("💡 النظام في انتظار رفع الصور وإضافة تعليقاتك لبدء الفحص.")
