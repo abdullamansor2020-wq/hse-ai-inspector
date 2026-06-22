@@ -10,7 +10,7 @@ st.set_page_config(
     page_icon="🦺"
 )
 
-# تعديل التصفيف ليكون متوافقاً مع التحديثات الجديدة عبر نص صريح
+# التنسيق والتصميم الاحترافي (تم تصحيح الدالة هنا)
 css_style = """
 <style>
 .main { text-align: right; direction: rtl; }
@@ -20,12 +20,12 @@ div.stButton > button:first-child {
 .report-box { padding: 15px; border-radius: 10px; background-color: #f0f2f6; margin-bottom: 15px; direction: rtl; text-align: right; }
 </style>
 """
-st.markdown(str(css_style), unsafe_allowed_html=True)
+st.markdown(css_style, unsafe_allow_html=True)
 
 st.title("🦺 نظام فحص وتقييم مخاطر الأمن والسلامة بالذكاء الاصطناعي")
 st.write("مرحباً بك. هذا النظام يساعدك على رفع صور الموقع الإنشائية وتفنيد المخالفات بناءً على معايير السلامة الدولية وتوجيهاتك الخاصة.")
 
-# إدخال مفتاح الـ API بأمان من قبل المستخدم
+# إدخل مفتاح الـ API بأمان من قبل المستخدم
 st.sidebar.header("🔑 إعدادات النظام")
 api_key = st.sidebar.text_input("أدخل مفتاح Google Gemini API الخاص بك:", type="password")
 selected_model = st.sidebar.selectbox("اختر محرك الذكاء الاصطناعي:", ["gemini-1.5-flash (أسرع)", "gemini-1.5-pro (أدق وأعمق)"])
@@ -60,7 +60,7 @@ with col2:
     st.subheader("📊 تقرير فحص السلامة (HSE Report)")
     
     if not api_key:
-        st.warning("⚠️ يرجى إدخل مفتاح الـ API الخاص بك في القائمة الجانبية لتفعيل النظام.")
+        st.warning("⚠️ يرجى إدخال مفتاح الـ API الخاص بك في القائمة الجانبية لتفعيل النظام.")
     elif uploaded_files and api_key:
         # تفعيل الـ API
         model_name = "gemini-1.5-flash" if "flash" in selected_model else "gemini-1.5-pro"
@@ -92,13 +92,13 @@ with col2:
                     img = Image.open(file)
                     st.image(img, caption=f"صورة رقم {idx+1}: {file.name}", use_column_width=True)
                     
-                    # استدعاء الذكاء الاصطناعي للتحليل
+                    # استدعاء الذكاء الاصطناعي للتحليل (وتم تصحيح الدالة هنا أيضاً)
                     try:
                         response = model.generate_content([prompt, img])
                         analysis_result = response.text
                         
                         st.markdown(f"#### 📝 نتيجة فحص الصورة {idx+1}:")
-                        st.markdown(f"<div class='report-box'>{analysis_result}</div>", unsafe_allowed_html=True)
+                        st.markdown(f"<div class='report-box'>{analysis_result}</div>", unsafe_allow_html=True)
                         
                         final_report_text += f"--- تحليل الصورة رقم {idx+1} ({file.name}) ---\n{analysis_result}\n\n"
                     except Exception as e:
