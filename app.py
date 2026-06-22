@@ -10,7 +10,7 @@ st.set_page_config(
     page_icon="🦺"
 )
 
-# التنسيق والتصميم الاحترافي (تم تصحيح الدالة هنا)
+# التنسيق والتصميم الاحترافي
 css_style = """
 <style>
 .main { text-align: right; direction: rtl; }
@@ -25,10 +25,12 @@ st.markdown(css_style, unsafe_allow_html=True)
 st.title("🦺 نظام فحص وتقييم مخاطر الأمن والسلامة بالذكاء الاصطناعي")
 st.write("مرحباً بك. هذا النظام يساعدك على رفع صور الموقع الإنشائية وتفنيد المخالفات بناءً على معايير السلامة الدولية وتوجيهاتك الخاصة.")
 
-# إدخل مفتاح الـ API بأمان من قبل المستخدم
+# إدخال مفتاح الـ API بأمان من قبل المستخدم
 st.sidebar.header("🔑 إعدادات النظام")
 api_key = st.sidebar.text_input("أدخل مفتاح Google Gemini API الخاص بك:", type="password")
-selected_model = st.sidebar.selectbox("اختر محرك الذكاء الاصطناعي:", ["gemini-1.5-flash (أسرع)", "gemini-1.5-pro (أدق وأعمق)"])
+
+# تحديث أسماء النماذج لتتوافق مع تحديثات جوجل لعام 2026
+selected_model = st.sidebar.selectbox("اختر محرك الذكاء الاصطناعي:", ["gemini-1.5-flash-latest (أسرع)", "gemini-1.5-pro-latest (أدق وأعمق)"])
 
 st.sidebar.markdown("""
 ---
@@ -62,8 +64,8 @@ with col2:
     if not api_key:
         st.warning("⚠️ يرجى إدخال مفتاح الـ API الخاص بك في القائمة الجانبية لتفعيل النظام.")
     elif uploaded_files and api_key:
-        # تفعيل الـ API
-        model_name = "gemini-1.5-flash" if "flash" in selected_model else "gemini-1.5-pro"
+        # تفعيل الـ API بالاسم المحدث
+        model_name = "gemini-1.5-flash-latest" if "flash" in selected_model else "gemini-1.5-pro-latest"
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel(model_name)
         
@@ -92,7 +94,6 @@ with col2:
                     img = Image.open(file)
                     st.image(img, caption=f"صورة رقم {idx+1}: {file.name}", use_column_width=True)
                     
-                    # استدعاء الذكاء الاصطناعي للتحليل (وتم تصحيح الدالة هنا أيضاً)
                     try:
                         response = model.generate_content([prompt, img])
                         analysis_result = response.text
