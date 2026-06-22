@@ -24,7 +24,7 @@ div.stButton > button:first-child {
 st.markdown(css_style, unsafe_allow_html=True)
 
 st.title("🦺 نظام فحص ومطابقة مخاطر السلامة (HSE) المجاني بالكامل")
-st.write("تم تحديث النظام ليعمل عبر المحرك المستقر لـ Groq لضمان عدد محاولات ضخم ومجاني دون انقطاع.")
+st.write("نظام ذكي متكامل يعمل عبر منصة Groq لفحص وتحليل صور المواقع الإنشائية وإصدار التقارير الهندسية الفورية.")
 
 # إدخال مفتاح الـ API الخاص بـ Groq في القائمة الجانبية
 st.sidebar.header("🔑 إعدادات منصة Groq")
@@ -34,8 +34,8 @@ st.sidebar.markdown("""
 ---
 **💡 كيف يعمل النظام؟**
 1. ارفع صور الموقع.
-2. أضف أي ملاحظات سياقية (مثل: التركيز على الحفريات أو السقالات).
-3. اضغط تحليل، وسيقوم الموديل المستقر بقراءة الصورة وإخراج التقرير فوراً.
+2. أضف أي ملاحظات سياقية هندسية.
+3. اضغط تحليل، وسيقوم النظام باختيار أفضل الموديلات المتاحة مجاناً لتوليد التقرير فوراً وبدون انقطاع.
 """)
 
 # تقسيم واجهة المستخدم لرفع البيانات ومعاينتها
@@ -71,7 +71,7 @@ with col2:
             
             with st.spinner("جاري تحليل الصور وتطبيق توجيهاتك الهندسية الآن..."):
                 
-                # صياغة التوجيه الهندسي المحكم
+                # صياغة التوجيه الهندسي المحكم باللغة العربية والإنجليزية لضمان دقة التحليل
                 prompt = f"""
                 You are a senior professional HSE Auditor and Safety Inspector. Analyze the uploaded construction site image.
                 
@@ -92,7 +92,7 @@ with col2:
                     st.image(img, caption=f"صورة الموقع رقم {idx+1}: {file.name}", use_column_width=True)
                     
                     try:
-                        # تحويل الصورة إلى JPEG وتشفيرها بصيغة Base64 لكي يستطيع الـ API قراءتها هندسياً بالكامل
+                        # تحويل الصورة إلى JPEG وتشفيرها بصيغة Base64
                         if img.mode in ("RGBA", "P"):
                             img = img.convert("RGB")
                         
@@ -100,36 +100,55 @@ with col2:
                         img.save(buffered, format="JPEG")
                         base64_image = base64.b64encode(buffered.getvalue()).decode('utf-8')
                         
-                        # استدعاء الموديل الرسمي والمستقر الجديد للرؤية من Meta عبر Groq
-                        chat_completion = client.chat.completions.create(
-                            messages=[
-                                {
-                                    "role": "user",
-                                    "content": [
-                                        {"type": "text", "text": prompt},
+                        # قائمة بالموديلات البديلة المتاحة للرؤية لتجنب خطأ 404 تماماً
+                        models_to_try = [
+                            "llama-3.2-11b-vision-preview",
+                            "llama-3.2-90b-vision-preview",
+                            "llava-v1.5-7b-4096"
+                        ]
+                        
+                        analysis_result = None
+                        last_error = ""
+                        
+                        # محاولة الاتصال بالموديلات بالترتيب حتى يعمل أحدها
+                        for model_name in models_to_try:
+                            try:
+                                chat_completion = client.chat.completions.create(
+                                    messages=[
                                         {
-                                            "type": "image_url",
-                                            "image_url": {
-                                                "url": f"data:image/jpeg;base64,{base64_image}",
-                                            },
-                                        },
+                                            "role": "user",
+                                            "content": [
+                                                {"type": "text", "text": prompt},
+                                                {
+                                                    "type": "image_url",
+                                                    "image_url": {
+                                                        "url": f"data:image/jpeg;base64,{base64_image}",
+                                                    },
+                                                },
+                                            ],
+                                        }
                                     ],
-                                }
-                            ],
-                            model="llama-3.2-11b-vision-instruct", # الموديل المستقر المعتمد حالياً
-                        )
+                                    model=model_name,
+                                )
+                                analysis_result = chat_completion.choices[0].message.content
+                                break # إذا نجح التحليل، اخرج من الحلقة التكرارية فوراً
+                            except Exception as e:
+                                last_error = str(e)
+                                continue # إذا فشل، انتقل للموديل البديل التالي
                         
-                        analysis_result = chat_completion.choices[0].message.content
-                        
-                        st.markdown(f"#### 📝 نتيجة فحص الصورة {idx+1}:")
-                        st.markdown(f"<div class='report-box'>{analysis_result}</div>", unsafe_allow_html=True)
-                        
-                        final_report_text += f"--- تحليل الصورة رقم {idx+1} ({file.name}) ---\n{analysis_result}\n\n"
+                        if analysis_result:
+                            st.markdown(f"#### 📝 نتيجة فحص الصورة {idx+1}:")
+                            st.markdown(f"<div class='report-box'>{analysis_result}</div>", unsafe_allow_html=True)
+                            final_report_text += f"--- تحليل الصورة رقم {idx+1} ({file.name}) ---\n{analysis_result}\n\n"
+                        else:
+                            st.error(f"لم نتمكن من الاتصال بالموديلات المتاحة حالياً. تفاصيل آخر خطأ: {last_error}")
+                            
                     except Exception as e:
-                        st.error(f"حدث خطأ أثناء الاتصال بالخادم للصورة {idx+1}: {str(e)}")
+                        st.error(f"حدث خطأ غير متوقع أثناء معالجة الصورة رقم {idx+1}: {str(e)}")
                 
-                st.session_state['download_ready'] = final_report_text
-                st.success("✅ تم الفحص وإصدار التقارير بنجاح!")
+                if 'download_ready' not in st.session_state or final_report_text != "=== تقرير فحص السلامة المهنية والمطابقة الذكي (Groq) ===\n\n":
+                    st.session_state['download_ready'] = final_report_text
+                    st.success("✅ تم الفحص وإصدار التقارير بنجاح!")
 
     elif not uploaded_files:
         st.info("💡 النظام في انتظار رفع الصور وإضافة تعليقاتك لبدء الفحص.")
