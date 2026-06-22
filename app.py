@@ -10,19 +10,20 @@ st.set_page_config(
     page_icon="🦺"
 )
 
-# تصفيف الصفحة بروح احترافية (CSS)
-st.markdown("""
-    <style>
-    .main { text-align: right; direction: rtl; }
-    div.stButton > button:first-child {
-        background-color: #FF4B4B; color: white; width: 100%; font-size: 20px; font-weight: bold;
-    }
-    .report-box { padding: 15px; border-radius: 10px; background-color: #f0f2f6; margin-bottom: 15px; }
-    </style>
-""", unsafe_allowed_html=True)
+# تعديل التصفيف ليكون متوافقاً مع التحديثات الجديدة عبر نص صريح
+css_style = """
+<style>
+.main { text-align: right; direction: rtl; }
+div.stButton > button:first-child {
+    background-color: #FF4B4B; color: white; width: 100%; font-size: 20px; font-weight: bold;
+}
+.report-box { padding: 15px; border-radius: 10px; background-color: #f0f2f6; margin-bottom: 15px; direction: rtl; text-align: right; }
+</style>
+"""
+st.markdown(str(css_style), unsafe_allowed_html=True)
 
 st.title("🦺 نظام فحص وتقييم مخاطر الأمن والسلامة بالذكاء الاصطناعي")
-st.write("مرحباً بك. هذا النظام يساعدك على رفع صور الموقع الإنشائي وتفنيد المخالفات بناءً على معايير السلامة الدولية وتوجيهاتك الخاصة.")
+st.write("مرحباً بك. هذا النظام يساعدك على رفع صور الموقع الإنشائية وتفنيد المخالفات بناءً على معايير السلامة الدولية وتوجيهاتك الخاصة.")
 
 # إدخال مفتاح الـ API بأمان من قبل المستخدم
 st.sidebar.header("🔑 إعدادات النظام")
@@ -59,7 +60,7 @@ with col2:
     st.subheader("📊 تقرير فحص السلامة (HSE Report)")
     
     if not api_key:
-        st.warning("⚠️ يرجى إدخال مفتاح الـ API الخاص بك في القائمة الجانبية لتفعيل النظام.")
+        st.warning("⚠️ يرجى إدخل مفتاح الـ API الخاص بك في القائمة الجانبية لتفعيل النظام.")
     elif uploaded_files and api_key:
         # تفعيل الـ API
         model_name = "gemini-1.5-flash" if "flash" in selected_model else "gemini-1.5-pro"
